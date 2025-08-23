@@ -42,8 +42,37 @@ router.get("/firebase-test", async (req, res) => {
 
 // GET /api/url
 router.get("/url", (req, res) => {
+  // Array of possible redirect URLs
+  const redirectUrls = [
+    "https://www.google.com",
+    "https://www.youtube.com",
+    "https://www.github.com",
+    "https://www.stackoverflow.com",
+    "https://www.reddit.com",
+    "https://www.wikipedia.org",
+    "https://www.amazon.com",
+    "https://www.netflix.com",
+  ];
+
+  // Randomly select a URL
+  const randomUrl =
+    redirectUrls[Math.floor(Math.random() * redirectUrls.length)];
+
   res.json({
-    url: "https://example.com/api/endpoint",
+    url: randomUrl,
+    timestamp: new Date().toISOString(),
+    totalUrls: redirectUrls.length,
+  });
+});
+
+// GET /api/redirect-config
+router.get("/redirect-config", (req, res) => {
+  res.json({
+    mandatory: true,
+    maxRedirectsPerDay: 2,
+    minTimeBetweenRedirects: 24, // hours
+    enabled: true,
+    timestamp: new Date().toISOString(),
   });
 });
 

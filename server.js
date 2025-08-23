@@ -5,8 +5,12 @@ require("dotenv").config();
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// Initialize Firebase
+const { initializeFirebase } = require("./src/config/firebase");
+initializeFirebase();
+
 // Import routes
-const apiRoutes = require("./routes/api");
+const apiRoutes = require("./src/routes/api");
 
 // Middleware
 app.use(cors());

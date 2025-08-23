@@ -1,62 +1,88 @@
 # Clickbait Backend
 
-A Node.js Express server for the Clickbait application.
+A Node.js backend API with Firebase integration for the Clickbait application.
 
-## Setup
+## Setup Instructions
 
-1. **Install dependencies:**
+### 1. Environment Variables
+
+1. Copy the example environment file:
+
    ```bash
-   npm install
+   cp env.example .env
    ```
 
-2. **Create environment file:**
-   Create a `.env` file in the root directory with:
-   ```
-   PORT=3000
-   NODE_ENV=development
-   ```
+2. Update the `.env` file with your actual Firebase service account credentials.
 
-3. **Start the server:**
-   - Development mode (with auto-restart):
-     ```bash
-     npm run dev
-     ```
-   - Production mode:
-     ```bash
-     npm start
-     ```
+### 2. Install Dependencies
 
-## Available Scripts
+```bash
+npm install
+```
 
-- `npm start` - Start the server in production mode
-- `npm run dev` - Start the server in development mode with nodemon
-- `npm test` - Run tests (not configured yet)
+### 3. Start the Server
+
+Development mode:
+
+```bash
+npm run dev
+```
+
+Production mode:
+
+```bash
+npm start
+```
 
 ## API Endpoints
 
-- `GET /` - Welcome message
+- `GET /` - Basic API status
 - `GET /health` - Health check
-- `GET /api/test` - Test API endpoint
-- `GET /api` - API status
-- `GET /api/status` - Detailed server status
+- `GET /api` - API working status
+- `GET /api/status` - Detailed API status
+- `GET /api/firebase-test` - Test Firebase connection
+
+## Firebase Integration
+
+The backend is configured with Firebase Admin SDK and includes:
+
+- **Firestore Database** - For data storage
+- **Firebase Auth** - For user authentication
+- **Firebase Storage** - For file storage
+
+### Firebase Services Available
+
+- `getFirestore()` - Access Firestore database
+- `getAuth()` - Access Firebase Authentication
+- `getStorage()` - Access Firebase Storage
 
 ## Project Structure
 
 ```
-clickbait_backend/
-├── server.js          # Main server file
-├── package.json       # Dependencies and scripts
-├── routes/            # API route definitions
-├── controllers/       # Route controllers
-├── models/           # Data models
-├── middleware/       # Custom middleware
-└── config/          # Configuration files
+src/
+├── config/
+│   └── firebase.js      # Firebase configuration
+├── controllers/         # Route controllers
+├── middleware/          # Custom middleware
+├── models/             # Data models
+└── routes/
+    └── api.js          # API routes
 ```
 
-## Development
+## Environment Variables
 
-The server uses:
-- **Express.js** - Web framework
-- **CORS** - Cross-origin resource sharing
-- **dotenv** - Environment variable management
-- **nodemon** - Auto-restart during development
+Required environment variables (see `env.example`):
+
+- `FIREBASE_TYPE` - Service account type
+- `FIREBASE_PROJECT_ID` - Firebase project ID
+- `FIREBASE_PRIVATE_KEY_ID` - Private key ID
+- `FIREBASE_PRIVATE_KEY` - Private key (with newlines)
+- `FIREBASE_CLIENT_EMAIL` - Client email
+- `FIREBASE_CLIENT_ID` - Client ID
+- `FIREBASE_AUTH_URI` - Auth URI
+- `FIREBASE_TOKEN_URI` - Token URI
+- `FIREBASE_AUTH_PROVIDER_X509_CERT_URL` - Auth provider cert URL
+- `FIREBASE_CLIENT_X509_CERT_URL` - Client cert URL
+- `FIREBASE_UNIVERSE_DOMAIN` - Universe domain
+- `PORT` - Server port (default: 3000)
+- `NODE_ENV` - Environment (development/production)

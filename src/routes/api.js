@@ -40,4 +40,11 @@ router.get("/firebase-test", async (req, res) => {
   }
 });
 
+// GET /api/url
+router.get("/url", (req, res) => {
+  res.json({
+    url: "https://example.com/api/endpoint",
+  });
+});
+
 module.exports = router;

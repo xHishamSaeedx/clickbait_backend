@@ -2,15 +2,13 @@ const express = require("express");
 const router = express.Router();
 
 // Import Firebase with error handling
-let getFirestore, getAuth;
+let db;
 try {
   const firebase = require("../config/firebase");
-  getFirestore = firebase.getFirestore;
-  getAuth = firebase.getAuth;
+  db = firebase.db;
 } catch (error) {
   console.warn("⚠️ Firebase not available, some features may be limited");
-  getFirestore = () => null;
-  getAuth = () => null;
+  db = null;
 }
 
 // Simple JWT-like token generation
@@ -56,8 +54,9 @@ router.get("/status", (req, res) => {
 // GET /api/firebase-test
 router.get("/firebase-test", async (req, res) => {
   try {
-    const db = getFirestore();
-    const auth = getAuth();
+    if (!db) {
+      return res.status(500).json({ error: "Firebase not available" });
+    }
 
     // Test Firestore connection
     const testDoc = await db.collection("test").doc("connection").get();
@@ -65,7 +64,6 @@ router.get("/firebase-test", async (req, res) => {
     res.json({
       message: "Firebase connection successful!",
       firestore: "Connected",
-      auth: "Connected",
       timestamp: new Date().toISOString(),
     });
   } catch (error) {
@@ -78,28 +76,36 @@ router.get("/firebase-test", async (req, res) => {
 });
 
 // GET /api/url
-router.get("/url", (req, res) => {
-  // Array of possible redirect URLs
-  const redirectUrls = [
-    "https://www.google.com",
-    "https://www.youtube.com",
-    "https://www.github.com",
-    "https://www.stackoverflow.com",
-    "https://www.reddit.com",
-    "https://www.wikipedia.org",
-    "https://www.amazon.com",
-    "https://www.netflix.com",
-  ];
+router.get("/url", async (req, res) => {
+  try {
+    if (!db) {
+      return res.status(500).json({ error: "Firebase not available" });
+    }
 
-  // Randomly select a URL
-  const randomUrl =
-    redirectUrls[Math.floor(Math.random() * redirectUrls.length)];
+    // Fetch all documents from the "urls" collection
+    const urlsSnapshot = await db.collection("urls").get();
+    
+    if (urlsSnapshot.empty) {
+      return res.status(404).json({ error: "No URLs found in Firestore" });
+    }
 
-  res.json({
-    url: randomUrl,
-    timestamp: new Date().toISOString(),
-    totalUrls: redirectUrls.length,
-  });
+    // Convert to array and pick one at random
+    const urls = [];
+    urlsSnapshot.forEach(doc => {
+      urls.push({ id: doc.id, ...doc.data() });
+    });
+
+    const randomUrl = urls[Math.floor(Math.random() * urls.length)];
+
+    res.json({
+      url: randomUrl.url,
+      timestamp: new Date().toISOString(),
+      totalUrls: urls.length,
+    });
+  } catch (error) {
+    console.error("Error fetching URL from Firestore:", error);
+    res.status(500).json({ error: "Failed to fetch URL from database" });
+  }
 });
 
 // GET /api/redirect-config
@@ -113,13 +119,6 @@ router.get("/redirect-config", (req, res) => {
   });
 });
 
-// In-memory storage for URLs (replace with database later)
-let urls = [
-  { id: '1', url: 'https://www.google.com', active: true },
-  { id: '2', url: 'https://www.youtube.com', active: true },
-  { id: '3', url: 'https://www.github.com', active: false }
-];
-
 // Simple auth middleware
 function requireAuth(req, res, next) {
   const authHeader = req.headers.authorization;
@@ -130,50 +129,118 @@ function requireAuth(req, res, next) {
   next();
 }
 
-// GET /api/urls
-router.get("/urls", requireAuth, (req, res) => {
-  res.json(urls);
-});
+// GET /api/urls - Return all URLs with their document IDs
+router.get("/urls", requireAuth, async (req, res) => {
+  try {
+    if (!db) {
+      return res.status(500).json({ error: "Firebase not available" });
+    }
 
-// POST /api/urls
-router.post("/urls", requireAuth, (req, res) => {
-  const { url, active } = req.body;
-  const newUrl = {
-    id: Date.now().toString(),
-    url,
-    active: active !== undefined ? active : true
-  };
-  urls.push(newUrl);
-  res.json(newUrl);
-});
+    const urlsSnapshot = await db.collection("urls").get();
+    const urls = [];
+    urlsSnapshot.forEach(doc => {
+      urls.push({ id: doc.id, ...doc.data() });
+    });
 
-// PATCH /api/urls/:id
-router.patch("/urls/:id", requireAuth, (req, res) => {
-  const { id } = req.params;
-  const { url, active } = req.body;
-  
-  const urlIndex = urls.findIndex(u => u.id === id);
-  if (urlIndex === -1) {
-    return res.status(404).json({ error: 'URL not found' });
+    res.json(urls);
+  } catch (error) {
+    console.error("Error fetching URLs:", error);
+    res.status(500).json({ error: "Failed to fetch URLs" });
   }
-  
-  if (url !== undefined) urls[urlIndex].url = url;
-  if (active !== undefined) urls[urlIndex].active = active;
-  
-  res.json(urls[urlIndex]);
 });
 
-// DELETE /api/urls/:id
-router.delete("/urls/:id", requireAuth, (req, res) => {
-  const { id } = req.params;
-  const urlIndex = urls.findIndex(u => u.id === id);
-  
-  if (urlIndex === -1) {
-    return res.status(404).json({ error: 'URL not found' });
+// POST /api/urls - Add a new URL
+router.post("/urls", requireAuth, async (req, res) => {
+  try {
+    if (!db) {
+      return res.status(500).json({ error: "Firebase not available" });
+    }
+
+    const { url } = req.body;
+    
+    if (!url) {
+      return res.status(400).json({ error: "URL is required" });
+    }
+
+    const newUrl = {
+      url,
+      active: true,
+      createdAt: new Date().toISOString()
+    };
+
+    const docRef = await db.collection("urls").add(newUrl);
+    const createdUrl = { id: docRef.id, ...newUrl };
+
+    res.status(201).json(createdUrl);
+  } catch (error) {
+    console.error("Error creating URL:", error);
+    res.status(500).json({ error: "Failed to create URL" });
   }
-  
-  urls.splice(urlIndex, 1);
-  res.json({ success: true });
+});
+
+// PUT /api/urls/:id - Update a URL by document ID
+router.put("/urls/:id", requireAuth, async (req, res) => {
+  try {
+    if (!db) {
+      return res.status(500).json({ error: "Firebase not available" });
+    }
+
+    const { id } = req.params;
+    const { url, active } = req.body;
+
+    if (!url) {
+      return res.status(400).json({ error: "URL is required" });
+    }
+
+    const urlRef = db.collection("urls").doc(id);
+    const urlDoc = await urlRef.get();
+
+    if (!urlDoc.exists) {
+      return res.status(404).json({ error: "URL not found" });
+    }
+
+    const updateData = {
+      url,
+      updatedAt: new Date().toISOString()
+    };
+
+    if (active !== undefined) {
+      updateData.active = active;
+    }
+
+    await urlRef.update(updateData);
+    
+    const updatedDoc = await urlRef.get();
+    const updatedUrl = { id: updatedDoc.id, ...updatedDoc.data() };
+
+    res.json(updatedUrl);
+  } catch (error) {
+    console.error("Error updating URL:", error);
+    res.status(500).json({ error: "Failed to update URL" });
+  }
+});
+
+// DELETE /api/urls/:id - Delete a URL by document ID
+router.delete("/urls/:id", requireAuth, async (req, res) => {
+  try {
+    if (!db) {
+      return res.status(500).json({ error: "Firebase not available" });
+    }
+
+    const { id } = req.params;
+    const urlRef = db.collection("urls").doc(id);
+    const urlDoc = await urlRef.get();
+
+    if (!urlDoc.exists) {
+      return res.status(404).json({ error: "URL not found" });
+    }
+
+    await urlRef.delete();
+    res.json({ success: true, message: "URL deleted successfully" });
+  } catch (error) {
+    console.error("Error deleting URL:", error);
+    res.status(500).json({ error: "Failed to delete URL" });
+  }
 });
 
 module.exports = router;

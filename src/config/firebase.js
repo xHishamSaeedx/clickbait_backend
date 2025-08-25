@@ -33,6 +33,16 @@ const initializeFirebase = () => {
   }
 };
 
+// Initialize Firebase and get Firestore instance
+let db;
+try {
+  initializeFirebase();
+  db = admin.firestore();
+} catch (error) {
+  console.warn("⚠️ Firebase not available, some features may be limited");
+  db = null;
+}
+
 // Export Firebase services
 const getFirestore = () => admin.firestore();
 const getAuth = () => admin.auth();
@@ -44,4 +54,5 @@ module.exports = {
   getAuth,
   getStorage,
   admin,
+  db, // Export db directly
 };

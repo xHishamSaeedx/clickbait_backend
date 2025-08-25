@@ -5,9 +5,14 @@ require("dotenv").config();
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Initialize Firebase
-const { initializeFirebase } = require("./src/config/firebase");
-initializeFirebase();
+// Initialize Firebase (with error handling)
+try {
+  const { initializeFirebase } = require("./src/config/firebase");
+  initializeFirebase();
+  console.log("✅ Firebase initialized successfully");
+} catch (error) {
+  console.warn("⚠️ Firebase initialization failed, continuing without Firebase:", error.message);
+}
 
 // Import routes
 const apiRoutes = require("./src/routes/api");
@@ -30,10 +35,6 @@ app.get("/health", (req, res) => {
 // API routes
 app.use("/api", apiRoutes);
 
-app.get("/api/test", (req, res) => {
-  res.json({ message: "API endpoint working correctly" });
-});
-
 // Error handling middleware
 app.use((err, req, res, next) => {
   console.error(err.stack);
@@ -42,6 +43,7 @@ app.use((err, req, res, next) => {
 
 // 404 handler - catch all unmatched routes
 app.use((req, res) => {
+  console.log(`404: ${req.method} ${req.url}`);
   res.status(404).json({ error: "Route not found" });
 });
 

@@ -5,14 +5,8 @@ require("dotenv").config();
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Initialize Firebase (with error handling)
-try {
-  const { initializeFirebase } = require("./src/config/firebase");
-  initializeFirebase();
-  console.log("✅ Firebase initialized successfully");
-} catch (error) {
-  console.warn("⚠️ Firebase initialization failed, continuing without Firebase:", error.message);
-}
+// Load Firebase config (initializes on import)
+require("./src/config/firebase");
 
 // Import routes
 const apiRoutes = require("./src/routes/api");

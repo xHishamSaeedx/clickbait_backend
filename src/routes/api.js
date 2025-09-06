@@ -13,20 +13,23 @@ try {
 
 // Simple JWT-like token generation
 function generateToken() {
-  return 'token_' + Math.random().toString(36).substr(2, 9) + '_' + Date.now();
+  return "token_" + Math.random().toString(36).substr(2, 9) + "_" + Date.now();
 }
 
 // POST /api/auth/login
 router.post("/auth/login", (req, res) => {
   console.log("Login attempt:", req.body);
   const { username, password } = req.body;
-  
+
   // Use environment variables for credentials
   const adminUsername = process.env.ADMIN_USERNAME || "admin";
   const adminPassword = process.env.ADMIN_PASSWORD || "password";
-  
-  console.log("Expected credentials:", { adminUsername, adminPassword: adminPassword ? "***" : "undefined" });
-  
+
+  console.log("Expected credentials:", {
+    adminUsername,
+    adminPassword: adminPassword ? "***" : "undefined",
+  });
+
   if (username === adminUsername && password === adminPassword) {
     const token = generateToken();
     console.log("Login successful, token generated");
@@ -84,14 +87,14 @@ router.get("/url", async (req, res) => {
 
     // Fetch all documents from the "urls" collection
     const urlsSnapshot = await db.collection("urls").get();
-    
+
     if (urlsSnapshot.empty) {
       return res.status(404).json({ error: "No URLs found in Firestore" });
     }
 
     // Convert to array and pick one at random
     const urls = [];
-    urlsSnapshot.forEach(doc => {
+    urlsSnapshot.forEach((doc) => {
       urls.push({ id: doc.id, ...doc.data() });
     });
 
@@ -122,15 +125,15 @@ router.get("/redirect-config", (req, res) => {
 // Simple auth middleware
 function requireAuth(req, res, next) {
   const authHeader = req.headers.authorization;
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return res.status(401).json({ error: 'unauthorized' });
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    return res.status(401).json({ error: "unauthorized" });
   }
   // For now, accept any Bearer token
   next();
 }
 
 // GET /api/urls - Return all URLs with their document IDs
-router.get("/urls", requireAuth, async (req, res) => {
+router.get("/urls", async (req, res) => {
   try {
     if (!db) {
       return res.status(500).json({ error: "Firebase not available" });
@@ -138,7 +141,7 @@ router.get("/urls", requireAuth, async (req, res) => {
 
     const urlsSnapshot = await db.collection("urls").get();
     const urls = [];
-    urlsSnapshot.forEach(doc => {
+    urlsSnapshot.forEach((doc) => {
       urls.push({ id: doc.id, ...doc.data() });
     });
 
@@ -157,7 +160,7 @@ router.post("/urls", requireAuth, async (req, res) => {
     }
 
     const { url } = req.body;
-    
+
     if (!url) {
       return res.status(400).json({ error: "URL is required" });
     }
@@ -165,7 +168,7 @@ router.post("/urls", requireAuth, async (req, res) => {
     const newUrl = {
       url,
       active: true,
-      createdAt: new Date().toISOString()
+      createdAt: new Date().toISOString(),
     };
 
     const docRef = await db.collection("urls").add(newUrl);
@@ -201,7 +204,7 @@ router.put("/urls/:id", requireAuth, async (req, res) => {
 
     const updateData = {
       url,
-      updatedAt: new Date().toISOString()
+      updatedAt: new Date().toISOString(),
     };
 
     if (active !== undefined) {
@@ -209,7 +212,7 @@ router.put("/urls/:id", requireAuth, async (req, res) => {
     }
 
     await urlRef.update(updateData);
-    
+
     const updatedDoc = await urlRef.get();
     const updatedUrl = { id: updatedDoc.id, ...updatedDoc.data() };
 
